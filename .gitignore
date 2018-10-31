@@ -1,0 +1,7 @@
+.history
+.npmrc
+.vscode
+build
+node_modules
+lib
+*.log
