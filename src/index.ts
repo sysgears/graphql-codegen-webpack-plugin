@@ -1,4 +1,5 @@
 import { compilation, Compiler } from 'webpack';
+import { schemaToTemplateContext, makeExecutableSchema } from 'graphql-codegen-core';
 
 interface PluginOptions {
   outputPath?: string;
@@ -17,11 +18,18 @@ export default class GraphQLCodeGenPlugin {
 
   public apply(compiler: Compiler) {
     compiler.hooks.compilation.tap('graphqlCodeGen', (comp: compilation.Compilation) => {
-      comp.chunks.forEach((chunk: compilation.Chunk) => {
-        chunk.modulesIterable.forEach((module: any) => {
+      comp.hooks.finishModules.tap('graphqlCodeGen', (modules: compilation.Module[]) => {
+        const typeDefs = [];
+        modules.forEach((module: any) => {
           if (!this.options.excludeRegex.test(module.resource) && this.options.graphqlRegex.test(module.resource)) {
+            if (module.type !== 'javascript/auto' || !module.originalSource) {
+              throw new Error('Unable to handle the module' + module);
+            }
+            typeDefs.push(eval(module.originalSource().source()));
           }
         });
+        const schema = makeExecutableSchema({ typeDefs, resolvers: {}, allowUndefinedInResolve: true })
+        console.log(schemaToTemplateContext(schema));
       });
     });
   }

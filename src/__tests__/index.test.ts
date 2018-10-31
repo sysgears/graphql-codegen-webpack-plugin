@@ -1,5 +1,4 @@
 import * as fs from 'fs';
-import { generate } from 'graphql-code-generator';
 import * as tmp from 'tmp';
 import webpack from 'webpack';
 import Plugin from '..';
@@ -30,11 +29,6 @@ describe('Webpack GraphQL CodeGen Plugin', () => {
     const SCHEMA_FILENAME = 'schema.graphql';
     fs.writeFileSync(SCHEMA_FILENAME, 'type Query { dummy: Int }');
     fs.writeFileSync('entry.js', `import './schema.graphql'`);
-    const files = await generate({
-      schema: SCHEMA_FILENAME,
-      template: 'graphql-codegen-typescript-template',
-      out: 'types.ts'
-    });
     const plugin = new Plugin();
     const compiler = webpack({
       plugins: [plugin],
