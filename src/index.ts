@@ -1,9 +1,12 @@
 import { compilation, Compiler } from 'webpack';
-import { schemaToTemplateContext, makeExecutableSchema, transformDocumentsFiles, DocumentFile } from 'graphql-codegen-core';
+import { schemaToTemplateContext, makeExecutableSchema, transformDocumentsFiles, DocumentFile, FileOutput } from 'graphql-codegen-core';
+import { compileTemplate } from 'graphql-codegen-compiler';
 import { separateOperations } from 'graphql';
+import * as fs from 'fs';
 
 interface PluginOptions {
   outputPath?: string;
+  template?: string
   excludeRegex?: RegExp;
   graphqlRegex?: RegExp;
 }
@@ -13,6 +16,7 @@ export default class GraphQLCodeGenPlugin {
 
   constructor(options?: PluginOptions) {
     this.options = options || {};
+    this.options.template = this.options.template || 'graphql-codegen-typescript-template';
     this.options.excludeRegex = this.options.excludeRegex || /[\\/]node_modules[\\/]/;
     this.options.graphqlRegex = this.options.graphqlRegex || /(.graphql|.gql)$/;
   }
@@ -37,10 +41,24 @@ export default class GraphQLCodeGenPlugin {
             }
           }
         });
+        const templateFromExport = require(this.options.template);
+        const templateConfig = templateFromExport.default || templateFromExport.config || templateFromExport;
+
         const schema = makeExecutableSchema({ typeDefs, resolvers: {}, allowUndefinedInResolve: true })
-        const schemaContext = schemaToTemplateContext(schema);
+        const templateContext = schemaToTemplateContext(schema);
         const transformedDocs = transformDocumentsFiles(schema, documents);
-        console.log(transformedDocs);
+        compileTemplate(templateConfig, templateContext, [transformedDocs], {
+          generateDocuments: true,
+          generateSchema: true
+        }).then((results: FileOutput[]) => {
+          results.forEach((file: FileOutput) => {
+            const content = fs.existsSync(file.filename) ? fs.readFileSync(file.filename).toString() : undefined;
+            if (content !== file.content) {
+              // TODO: add prettifier
+              fs.writeFileSync(file.filename, file.content);
+            }
+          });
+        });
       });
     });
   }

@@ -29,7 +29,7 @@ describe('Webpack GraphQL CodeGen Plugin', () => {
     const SCHEMA_FILENAME = 'schema.graphql';
     const QUERY_FILENAME = 'query.graphql';
     fs.writeFileSync(SCHEMA_FILENAME, 'type Query { dummy: Int }');
-    fs.writeFileSync(QUERY_FILENAME, '{ dummy }');
+    fs.writeFileSync(QUERY_FILENAME, 'query dummyQuery { dummy }');
     fs.writeFileSync('entry.js', `import './schema.graphql';\nimport './query.graphql';`);
     const plugin = new Plugin();
     const compiler = webpack({
@@ -54,6 +54,7 @@ describe('Webpack GraphQL CodeGen Plugin', () => {
         if (err || stats.hasErrors()) {
           reject(err || stats.toString());
         } else {
+          expect(fs.readdirSync(tmpDir.name)).toContain('types.ts');
           resolve();
         }
       });
